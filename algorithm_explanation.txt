@@ -1,6 +1,6 @@
-There is a projection plane in space, and behind it is the camera, which is a 3vector. 
-The vector from the camera to the plane is what the player controls, along with the position of the camera.
-This vector is also normal to the plane. In order to project the 3d vertices into the 2d plane, we solve the equation of the line from the camera to each 3d vertex in space, and the solution of that equation is the intercept of the line with the plane. 
-We save those coordinates and use them to plot the points to the screen after doing some scaling. There's a parameter called "t" which gives the parametric location of the point of intersection on the plane. 
-Once we find the point, we need to convert that point into coordinates which are meaningful to the projection plane, by finding a pair of vectors inside the plane, each perpendicular to the other, and normal to the plane, so basically two spanning vectors. 
+There is a projection plane in space, and behind it is the camera, which is a 3vector.
+The vector from the camera to the plane is what the player controls, along with the position of the camera. 
+This vector is also normal to the plane. In order to project the 3d vertices into the 2d plane, we solve the equation of the line from the camera to each 3d vertex in space, and the solution of that equation is the intercept of the line with the plane.
+We save those coordinates and use them to plot the points to the screen after doing some scaling.
+There's a parameter called "t" which gives the parametric location of the point of intersection on the plane. Once we find the point, we need to convert that point into coordinates which are meaningful to the projection plane, by finding a pair of vectors inside the plane, each perpendicular to the other (and to the plane normal), and parallel to the plane (on the plane), so basically two spanning vectors. 
 We then express the intersection in terms of those, and we have the 2d points on the plane and we're ready to plot them on the screen after scaling. We do this for each 3d vertex and that's it!
