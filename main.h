@@ -30,7 +30,6 @@ __published:	// IDE-managed Components
 	TLabeledEdit *edtcamera;
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall Exit1Click(TObject *Sender);
-	void __fastcall Timer1Timer(TObject *Sender);
 	void __fastcall FormActivate(TObject *Sender);
 private:	// User declarations
 public:		// User declarations

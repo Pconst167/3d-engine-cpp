@@ -2,6 +2,7 @@
 #include <math.h>
 #include <vcl.h>
 #pragma hdrstop
+#include <vector>
 
 #include "main.h"
 #include "Unit3.h"
@@ -12,6 +13,8 @@
 #pragma resource "*.dfm"
 Tfmain *fmain;
 //---------------------------------------------------------------------------
+
+
 
 int i, j, k1,k2,k3, v;
 
@@ -32,7 +35,6 @@ int i, j, k1,k2,k3, v;
   double xx, yy;
   double vertex_anglex, vertex_angley;
   double cosine;
-  double angle;
 
   double distance_vertex_intersection;
   double distance_camera_intersection;
@@ -42,6 +44,13 @@ int i, j, k1,k2,k3, v;
 
   double sinphi, cosphi, sintheta, costheta, sineta, coseta;
   double sineta2, coseta2;
+
+TPoint points0[4];
+TPoint points1[4];
+TPoint points2[4];
+TPoint points3[4];
+TPoint points4[4];
+TPoint points5[4];
 
 void setres(int width, int height, int colorDepth){
 
@@ -59,11 +68,11 @@ void process_physics();
 
 
 
-const MAX_BLOCKS_X = 20;
+const MAX_BLOCKS_X = 10;
 const MAX_BLOCKS_Y = 10;
-const MAX_BLOCKS_Z = 10;
+const MAX_BLOCKS_Z = 20;
 
-const double BLOCK_SIDE = 1;
+const double BLOCK_SIDE = 10;
 
 class __3vertex{
 	public:
@@ -75,10 +84,7 @@ class __3vertex{
 class __2vertex{
 	public:
     	double x, y;
-        double distance_vertex_intersection;
-        double distance_vertex_camera;
-       	double distance_camera_intersection;
-        double angle;
+       
     private:
 
 };
@@ -244,7 +250,7 @@ void __fastcall Tfmain::FormCreate(TObject *Sender)
 {
 
   int i, j, k;
-  int x, y, z;
+  double x, y, z;
 
   DoubleBuffered = true;
 
@@ -275,7 +281,7 @@ void __fastcall Tfmain::FormCreate(TObject *Sender)
         	//if(k > 0) _blocks[i][j][k]._type = typeAIR;
     		//else
             _blocks[i][j][k]._type = typeSOLID;
-    		_blocks[i][j][k]._color =  RGB(random(255), random(255), random(255));
+    		_blocks[i][j][k]._color = RGB(random(255), random(255), random(255));
 
   	_blocks[i][j][k]._3vertices[0].x = i * x*10*BLOCK_SIDE;
     _blocks[i][j][k]._3vertices[0].y = j * y*10*BLOCK_SIDE;
@@ -310,7 +316,7 @@ void __fastcall Tfmain::FormCreate(TObject *Sender)
   }
 
 
-  SPEED = 3;
+  SPEED = 2;
   ANG_SPEED = 0.025;
   DISTANCE_CAMERA_SCREEN_CENTRE = 1.0;
   ANGLE_OF_VISION = M_PI / 2.0;
@@ -365,7 +371,7 @@ void draw_perspective(){
   _player._camera.vz = DISTANCE_CAMERA_SCREEN_CENTRE * cosphi;
 
   // now lets calculate the first perpendicular vector (u) by doing a dot product with the view vector
-  // for this vector we want the Z component to be 0 so that it is parallel top the ground->
+  // for this vector we want the Z component to be 0 so that it is parallel to the ground->
   // the Y component can be anything, and then we find the X component
   // we will use this vector and the one perpendicular to it as a building set for the actual vectors we will use
   // as the vectors we use to calculate distances inside the vision plane
@@ -416,152 +422,99 @@ void draw_perspective(){
   az = cz + _player._camera.vz;
 
   // now we find the intersection of each vertex with the vision plane
-      for(k1= 0; k1 < MAX_BLOCKS_X; k1++){
-      	for(k2 = 0; k2 < MAX_BLOCKS_Y; k2++){
+    for(k1= 0; k1 < MAX_BLOCKS_X; k1++){
+        for(k2 = 0; k2 < MAX_BLOCKS_Y; k2++){
         	for(k3 = 0; k3 < MAX_BLOCKS_Z; k3++){
-        		for(v = 0; v < 8; v++){ // block surfaces
-          // current vertex coordinates
-          verx = _blocks[k1][k2][k3]._3vertices[v].x;
-          very = _blocks[k1][k2][k3]._3vertices[v].y;
-          verz = _blocks[k1][k2][k3]._3vertices[v].z;
+            	within_bounds = true;
+                for(v = 0; v < 8; v++){ // block surfaces
+                  // current vertex coordinates
+                    verx = _blocks[k1][k2][k3]._3vertices[v].x;
+                    very = _blocks[k1][k2][k3]._3vertices[v].y;
+                    verz = _blocks[k1][k2][k3]._3vertices[v].z;
+                    // parameter for line from camera to current vertex
+                    // if(( (verx - cx) * sin(camera.phi)*cos(camera.theta) + (very - cy)*sin(camera.phi)*sin(camera.theta) + (verz - cz)*cos(camera.phi) ) != 0.0)
+                    t = ( _player._camera.vx*sinphi*costheta + _player._camera.vy*sinphi*sintheta + _player._camera.vz*cosphi )
+                        / ( (verx - cx) * sinphi*costheta + (very - cy)*sinphi*sintheta + (verz - cz)*cosphi );
+                    // this is the intersection point on the plane
+                    inter_x = cx + (verx - cx) * t;
+                    inter_y = cy + (very - cy) * t;
+                    inter_z = cz + (verz - cz) * t;
+                    // this is a vector from the plane centre to the intersection point on the plane
+                    centre_to_inter_x = inter_x - ax;
+                    centre_to_inter_y = inter_y - ay;
+                    centre_to_inter_z = inter_z - az;
 
-          // parameter for line from camera to current vertex
-         // if(( (verx - cx) * sin(camera.phi)*cos(camera.theta) + (very - cy)*sin(camera.phi)*sin(camera.theta) + (verz - cz)*cos(camera.phi) ) != 0.0)
-          	t = ( _player._camera.vx*sinphi*costheta + _player._camera.vy*sinphi*sintheta + _player._camera.vz*cosphi )
-            	/ ( (verx - cx) * sinphi*costheta + (very - cy)*sinphi*sintheta + (verz - cz)*cosphi );
-          
+                    // distances
+                    distance_vertex_intersection = sqrt((verx - inter_x)*(verx - inter_x) + (very - inter_y)*(very - inter_y) + (verz - inter_z)*(verz - inter_z));
+                    distance_camera_intersection = sqrt((inter_x - cx)*(inter_x - cx) + (inter_y - cy)*(inter_y - cy) + (inter_z - cz)*(inter_z - cz));
+                    distance_vertex_camera = sqrt((verx - cx)*(verx - cx) + (very - cy)*(very - cy) + (verz - cz)*(verz - cz));
+                    // cosine between viewing vector and vertex vector to check if the vertex is within field of view (a circle)  (from dot product formula)
+                    cosine = (_player._camera.vx*(verx-cx) + _player._camera.vy*(very-cy) + _player._camera.vz*(verz-cz))
+                    / sqrt(_player._camera.vx*_player._camera.vx + _player._camera.vy*_player._camera.vy + _player._camera.vz*_player._camera.vz)
+                    / sqrt((verx-cx)*(verx-cx) + (very-cy)*(very-cy) + (verz-cz)*(verz-cz));
 
 
-          // this is the intersection point on the plane
-          inter_x = cx + (verx - cx) * t;
-          inter_y = cy + (very - cy) * t;
-          inter_z = cz + (verz - cz) * t;
+                    // if any of the vertices are outside the frustrum, we quit the testing of vertices for this cube
+                    if(( distance_vertex_camera < distance_camera_intersection)
+                    	|| (distance_vertex_intersection > MAX_VIEWING_DISTANCE)
+                    	|| ( fabs(acos(cosine)) > M_PI/2.0)){
+                    	within_bounds = false;
+                    	break;
+                    }
 
-          // this is a vector from the plane centre to the intersection point on the plane
-          centre_to_inter_x = inter_x - ax;
-          centre_to_inter_y = inter_y - ay;
-          centre_to_inter_z = inter_z - az;
+                    // now we need to find the lengths of both components of the inside vector
+                    // and check if they are within the bounds of the plane
+                    // to do this we take the dot product between the unit vectors which span the vision plane
+                    //and the vectors from the plane centre to the intersection
+                    xx = centre_to_inter_x*uux + centre_to_inter_y*uuy + centre_to_inter_z*uuz;
+                    yy = centre_to_inter_x*nnx + centre_to_inter_y*nny + centre_to_inter_z*nnz;
+                    _blocks[k1][k2][k3]._2vertices[v].x = xx / (SCREEN_WIDTH / 2.0);
+                    _blocks[k1][k2][k3]._2vertices[v].y = yy / (SCREEN_HEIGHT / 2.0);
+                }
+        		// if outside bounds, quit the plotting for this cube
+                if(within_bounds){
+                    points0[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y));
+                    points0[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y));
+                    points0[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y));
+                    points0[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y));
 
-          // now we need to find the lengths of both components of the inside vector
-          // and check if they are within the bounds of the plane
-          // to do this we take the dot product between the unit vectors which span the vision plane
-          //and the vectors from the plane centre to the intersection
-          xx = centre_to_inter_x*uux + centre_to_inter_y*uuy + centre_to_inter_z*uuz;
-          yy = centre_to_inter_x*nnx + centre_to_inter_y*nny + centre_to_inter_z*nnz;
+                    points1[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y));
+                    points1[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y));
+                    points1[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y));
+                    points1[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y));
 
-          // distances
-          distance_vertex_intersection = sqrt((verx - inter_x)*(verx - inter_x) + (very - inter_y)*(very - inter_y) + (verz - inter_z)*(verz - inter_z));
-          distance_vertex_intersection = sqrt((verx - inter_x)*(verx - inter_x) + (very - inter_y)*(very - inter_y) + (verz - inter_z)*(verz - inter_z));
-          distance_camera_intersection = sqrt((inter_x - cx)*(inter_x - cx) + (inter_y - cy)*(inter_y - cy) + (inter_z - cz)*(inter_z - cz));
-          distance_vertex_camera = sqrt((verx - cx)*(verx - cx) + (very - cy)*(very - cy) + (verz - cz)*(verz - cz));
-          // cosine between viewing vector and vertex vector to check if the vertex is within field of view (a circle)
-         cosine = (_player._camera.vx*(verx-cx) + _player._camera.vy*(very-cy) + _player._camera.vz*(verz-cz))
-         	/ sqrt(_player._camera.vx*_player._camera.vx + _player._camera.vy*_player._camera.vy + _player._camera.vz*_player._camera.vz)
-            / sqrt((verx-cx)*(verx-cx) + (very-cy)*(very-cy) + (verz-cz)*(verz-cz));
-         angle = acos(cosine);
+                    points2[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y));
+                    points2[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y));
+                    points2[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y));
+                    points2[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y));
 
-          _blocks[k1][k2][k3]._2vertices[v].x = xx / (SCREEN_WIDTH / 2.0);
-          _blocks[k1][k2][k3]._2vertices[v].y = yy / (SCREEN_HEIGHT / 2.0);
-          _blocks[k1][k2][k3]._2vertices[v].distance_vertex_intersection = distance_vertex_intersection;
-          _blocks[k1][k2][k3]._2vertices[v].distance_camera_intersection = distance_camera_intersection;
-          _blocks[k1][k2][k3]._2vertices[v].distance_vertex_camera = distance_vertex_camera;
-          _blocks[k1][k2][k3]._2vertices[v].angle = angle;
+                    points3[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y));
+                    points3[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y));
+                    points3[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y));
+                    points3[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y));
+
+                    points4[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y));
+                    points4[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y));
+                    points4[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y));
+                    points4[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y));
+
+                    points5[0] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y));
+                    points5[1] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y));
+                    points5[2] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y));
+                    points5[3] = Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y));
+
+                    screen->Canvas->Brush->Color = _blocks[k1][k2][k3]._color;
+                    screen->Canvas->Pen->Color = _blocks[k1][k2][k3]._color;
+                    screen->Canvas->Polygon(points0, 3);
+                    screen->Canvas->Polygon(points1, 3);
+                    screen->Canvas->Polygon(points2, 3);
+                    screen->Canvas->Polygon(points3, 3);
+                    screen->Canvas->Polygon(points4, 3);
+                    screen->Canvas->Polygon(points5, 3);
+                }
+            }
         }
-
-           
-        within_bounds = true;
-
-          if(
-          	( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[0].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[0].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[0].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[1].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[1].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[1].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[2].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[2].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[2].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[3].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[3].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[3].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[4].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[4].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[4].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[5].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[5].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[5].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[6].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[6].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[6].angle) > M_PI/2.0)
-             ||
-            ( distance_vertex_camera < _blocks[k1][k2][k3]._2vertices[7].distance_camera_intersection)
-            	|| ( _blocks[k1][k2][k3]._2vertices[7].distance_vertex_intersection > MAX_VIEWING_DISTANCE)
-            	|| ( fabs(_blocks[k1][k2][k3]._2vertices[7].angle) > M_PI/2.0)
-            )
-          {
-            within_bounds = false;
-            
-          }
-        
-        if(within_bounds){
-          TPoint points0[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y))
-          };
-          TPoint points1[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y))
-          };
-          TPoint points2[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y))
-          };
-          TPoint points3[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y))
-          };
-          TPoint points4[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[0].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[0].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[1].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[1].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[5].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[5].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[4].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[4].y))
-          };
-          TPoint points5[4] = {
-          	Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[3].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[3].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[2].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[2].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[6].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[6].y)),
-            Point(screen->Width / 2 + ((screen->Width/2) * _blocks[k1][k2][k3]._2vertices[7].x), screen->Height / 2 - ( (screen->Height/2) * _blocks[k1][k2][k3]._2vertices[7].y))
-          };
-          screen->Canvas->Brush->Color = _blocks[k1][k2][k3]._color;
-          screen->Canvas->Pen->Color = _blocks[k1][k2][k3]._color;
-          if(_blocks[k1][k2][k3]._type == typeSOLID)
-          {
-          	screen->Canvas->Polygon(points0, 3);
-          	screen->Canvas->Polygon(points1, 3);
-          	screen->Canvas->Polygon(points2, 3);
-          	screen->Canvas->Polygon(points3, 3);
-          	screen->Canvas->Polygon(points4, 3);
-          	screen->Canvas->Polygon(points5, 3);
-          }
-          }
-           }
-        }
-
-	}
+    }
        screen->Canvas->Brush->Color = clWhite;          /*
   // draw screen cross
   screen->Canvas->Pen->Color = RGB(100, 100, 100);
@@ -606,37 +559,6 @@ void draw_perspective(){
 
 }
 
-void __fastcall Tfmain::Timer1Timer(TObject *Sender)
-{
-	int i, j, k;
-  double x, y, z;
-
-  oldheight = screen->Height;
-  oldwidth = screen->Width;
-	//SetScreenResolution(640, 480, 8);
-
-  //while(~Application->Terminated){
-    clock = clock + 1;
-    read_keyboard();
-
-    //animate();
-    //process_physics();
-    //if(CheckBox2->Checked)
-
-    draw_perspective();
-    //update_info();
-
-    fmain->pscreen->Canvas->Draw(0, 0, screen);
-
-   // Application->ProcessMessages();
-  //}
-}
-
-
-
-
-
-//---------------------------------------------------------------------------
 
 
 void __fastcall Tfmain::FormActivate(TObject *Sender)

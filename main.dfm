@@ -92,7 +92,6 @@ object fmain: Tfmain
   object Timer1: TTimer
     Enabled = False
     Interval = 1
-    OnTimer = Timer1Timer
     Left = 296
     Top = 72
   end
